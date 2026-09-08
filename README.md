@@ -1,6 +1,6 @@
 # ZO Café Daily Ordering
 
-A lightweight, browser-based daily stock sheet that calculates the next order and prepares a WhatsApp message for **0657051162** (Tanzania country code is applied in the link).
+A lightweight, browser-based daily stock sheet that calculates the next order and prepares a WhatsApp message for **+255 719 387 276**.
 
 Open `index.html` in any modern browser. Data stays in that browser until you clear the sheet. The supplied ZO Café logo is included at `assets/zo-cafe-logo.png`, so keep the `assets` folder beside the HTML file.
 
