@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZO Café · Daily Ordering</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="hero">
+        <div class="brand-lockup">
+          <img class="brand-logo" src="assets/zo-cafe-logo.png" alt="ZO Café logo" />
+          <div>
+            <p class="eyebrow">ZO CAFÉ · OPERATIONS</p>
+            <h1>Daily stock &amp; order</h1>
+            <p class="subtitle">Record today’s stock, then prepare tomorrow’s WhatsApp order in one click.</p>
+          </div>
+        </div>
+        <aside class="order-card" aria-label="Order delivery date">
+          <span>Order for</span>
+          <label for="order-date">Delivery date</label>
+          <input id="order-date" type="date" />
+        </aside>
+      </header>
+
+      <section class="how-it-works" aria-label="How order quantities are calculated">
+        <span class="formula-label">ORDER FORMULA</span>
+        <strong>Maximum stock − closing stock = order quantity</strong>
+        <span>Example: maximum 6, closing stock 4 → order 2</span>
+      </section>
+
+      <section class="toolbar" aria-label="Order actions">
+        <div>
+          <h2>Daily sheet</h2>
+          <p>Set a maximum level for flexible items. Fixed levels are already set.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button id="clear-sheet" class="button secondary" type="button">Clear sheet</button>
+          <button id="copy-order" class="button secondary" type="button">Copy order</button>
+          <button id="whatsapp-order" class="button primary" type="button">Send on WhatsApp <span aria-hidden="true">↗</span></button>
+        </div>
+      </section>
+
+      <section class="sheet" aria-label="ZO Café daily stock sheet">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="item-col">Items</th>
+                <th>Max stock</th>
+                <th>Opening</th>
+                <th>Sales</th>
+                <th>Received</th>
+                <th>Wastage</th>
+                <th>Closing</th>
+                <th class="order-col">To order</th>
+              </tr>
+            </thead>
+            <tbody id="stock-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="order-preview" aria-labelledby="preview-title">
+        <div class="preview-heading">
+          <div>
+            <p class="eyebrow">READY TO SEND</p>
+            <h2 id="preview-title">Your order</h2>
+          </div>
+          <span id="order-total" class="total-pill">0 items</span>
+        </div>
+        <pre id="message-preview" aria-live="polite"></pre>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
