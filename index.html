@@ -3,81 +3,97 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZO Café · Daily Ordering</title>
+    <title>Zo Café | Order Desk</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="page-shell">
-      <header class="hero">
-        <div class="brand-lockup">
-          <img class="brand-logo" src="assets/zo-cafe-logo.png" alt="ZO Café logo" />
+    <main class="app-shell">
+      <aside class="sidebar">
+        <div class="brand"><span class="brand-mark">Z</span><span>Zo<br />Café</span></div>
+        <p class="eyebrow">Daily operations</p>
+        <nav class="group-nav" aria-label="Choose outlet group">
+          <button class="group-card active" data-group="G1">
+            <span class="group-id">G1</span><span class="group-name">G1 Report</span><span class="group-note">Selected daily report</span>
+          </button>
+          <button class="group-card" data-group="G2">
+            <span class="group-id">G2</span><span class="group-name">G2 Report</span><span class="group-note">Switch daily report</span>
+          </button>
+        </nav>
+        <div class="sidebar-footer">
+          <span class="status-dot"></span> Inventory saved locally
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
           <div>
-            <p class="eyebrow">ZO CAFÉ · OPERATIONS</p>
-            <h1>Daily stock &amp; order</h1>
-            <p class="subtitle">Record today’s stock, then prepare tomorrow’s WhatsApp order in one click.</p>
+            <p class="eyebrow">Daily operations</p>
+            <h1><span id="groupTitle">G1 Order</span></h1>
           </div>
-        </div>
-        <aside class="order-card" aria-label="Order delivery date">
-          <span>Order for</span>
-          <label for="order-date">Delivery date</label>
-          <input id="order-date" type="date" />
-        </aside>
-      </header>
+          <label class="report-date">Report date <input id="reportDate" type="date" /></label>
+          <button class="reset-btn" id="resetButton" title="Start both daily reports with opening stock at zero">Start new day</button>
+        </header>
 
-      <section class="how-it-works" aria-label="How order quantities are calculated">
-        <span class="formula-label">ORDER FORMULA</span>
-        <strong>Maximum stock − closing stock = order quantity</strong>
-        <span>Example: maximum 6, closing stock 4 → order 2</span>
-      </section>
+        <section class="starter-guide" aria-label="Getting started">
+          <div class="guide-heading"><span class="guide-number">01</span><div><p class="eyebrow">First time here?</p><h2>Follow these three simple steps.</h2></div></div>
+          <div class="guide-steps"><div><b>1</b><span><strong>Start with stock</strong>Opening stock is 0. Load yesterday’s report PDF to fill it automatically.</span></div><div><b>2</b><span><strong>Record daily changes</strong>Enter sales, received, and wastage for every report line.</span></div><div><b>3</b><span><strong>Save the report</strong>Download a filled daily-report PDF, ready to upload tomorrow.</span></div></div>
+        </section>
 
-      <section class="toolbar" aria-label="Order actions">
-        <div>
-          <h2>Daily sheet</h2>
-          <p>Set a maximum level for flexible items. Fixed levels are already set.</p>
-        </div>
-        <div class="toolbar-actions">
-          <button id="clear-sheet" class="button secondary" type="button">Clear sheet</button>
-          <button id="copy-order" class="button secondary" type="button">Copy order</button>
-          <button id="whatsapp-order" class="button primary" type="button">Send on WhatsApp <span aria-hidden="true">↗</span></button>
-        </div>
-      </section>
+        <section class="summary-grid" aria-label="Inventory summary">
+          <article class="summary-card"><p>Items tracked</p><strong id="trackedCount">0</strong><span>Menu lines</span></article>
+          <article class="summary-card"><p>Closing stock</p><strong id="stockCount">0</strong><span>Units on hand</span></article>
+          <article class="summary-card alert-card"><p>Today's activity</p><strong id="needCount">0</strong><span id="needLabel">Units changed today</span></article>
+          <article class="summary-card"><p>Today's wastage</p><strong id="wasteCount">0</strong><span>Units recorded</span></article>
+        </section>
 
-      <section class="sheet" aria-label="ZO Café daily stock sheet">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th class="item-col">Items</th>
-                <th>Max stock</th>
-                <th>Opening</th>
-                <th>Sales</th>
-                <th>Received</th>
-                <th>Wastage</th>
-                <th>Closing</th>
-                <th class="order-col">To order</th>
-              </tr>
-            </thead>
-            <tbody id="stock-rows"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="order-preview" aria-labelledby="preview-title">
-        <div class="preview-heading">
-          <div>
-            <p class="eyebrow">READY TO SEND</p>
-            <h2 id="preview-title">Your order</h2>
+        <section class="control-row">
+          <div class="segmented" role="tablist" aria-label="Inventory view">
+            <button class="view-tab active" data-view="inventory">Inventory</button>
+            <button class="view-tab" data-view="order">Daily report <span id="orderBadge">0</span></button>
           </div>
-          <span id="order-total" class="total-pill">0 items</span>
-        </div>
-        <pre id="message-preview" aria-live="polite"></pre>
+          <div class="actions">
+            <label class="secondary-btn file-button"><input type="file" id="importPdf" accept="application/pdf,.pdf" />Upload yesterday’s PDF</label>
+            <button class="secondary-btn" id="exportPdf">Download report PDF</button>
+            <button class="secondary-btn" id="copyButton">Copy order text</button>
+            <button class="whatsapp-btn" id="whatsappButton"><span>◔</span> Send to WhatsApp</button>
+          </div>
+        </section>
+
+        <section id="inventoryView" class="content-view">
+          <div class="table-intro">
+            <div><h2>Daily stock count</h2><p>Enter opening stock, sales, received items, and wastage. Closing stock is calculated automatically and included in the report PDF.</p></div>
+            <div class="legend"><span><i class="green-dot"></i> Calculated closing stock</span><span><i class="orange-dot"></i> Required report fields</span></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Item</th><th>Opening stock</th><th>Sales</th><th>Received</th><th>Wastage</th><th>Closing stock</th></tr></thead>
+              <tbody id="inventoryBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="orderView" class="content-view hidden">
+          <div class="order-layout">
+            <div class="order-sheet">
+              <div class="order-sheet-header"><div><p class="eyebrow">Recorded stock</p><h2 id="orderHeading">G1 Daily Report</h2></div><span id="orderDate"></span></div>
+              <div id="orderList"></div>
+              <p class="order-empty hidden" id="orderEmpty">All stock is at its target level. There is nothing to order.</p>
+            </div>
+            <aside class="how-it-works">
+              <p class="eyebrow">How it works</p>
+              <h3>Every daily-report line is here.</h3>
+              <p>Fill in opening stock, sales, received items, and wastage for each product.</p>
+              <p>Closing stock is calculated automatically and is included in your downloaded PDF.</p>
+              <div class="whatsapp-destination"><span>Order recipient</span><strong>+255 719 387 276</strong></div>
+            </aside>
+          </div>
+        </section>
       </section>
     </main>
-
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="toast" class="toast" role="status"></div>
     <script src="app.js"></script>
   </body>
 </html>
