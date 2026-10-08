@@ -39,7 +39,7 @@
 
         <section class="starter-guide" aria-label="Getting started">
           <div class="guide-heading"><span class="guide-number">01</span><div><p class="eyebrow">First time here?</p><h2>Follow these three simple steps.</h2></div></div>
-          <div class="guide-steps"><div><b>1</b><span><strong>Start with stock</strong>Opening stock is 0. Load yesterday’s report PDF to fill it automatically.</span></div><div><b>2</b><span><strong>Record daily changes</strong>Enter sales, received, and wastage for every report line.</span></div><div><b>3</b><span><strong>Save the report</strong>Download a filled daily-report PDF, ready to upload tomorrow.</span></div></div>
+          <div class="guide-steps"><div><b>1</b><span><strong>Start with stock</strong>Opening stock is 0. Load yesterday’s report PDF to fill it automatically.</span></div><div><b>2</b><span><strong>Paste what’s left</strong>Paste your “Remain” list to fill sales and build tomorrow’s order, or type the numbers in by hand.</span></div><div><b>3</b><span><strong>Send &amp; save</strong>Send the order on WhatsApp and download the report PDF for tomorrow.</span></div></div>
         </section>
 
         <section class="summary-grid" aria-label="Inventory summary">
@@ -57,19 +57,42 @@
           <div class="actions">
             <label class="secondary-btn file-button"><input type="file" id="importPdf" accept="application/pdf,.pdf" />Upload yesterday’s PDF</label>
             <button class="secondary-btn" id="exportPdf">Download report PDF</button>
-            <button class="secondary-btn" id="copyButton">Copy order text</button>
-            <button class="whatsapp-btn" id="whatsappButton"><span>◔</span> Send to WhatsApp</button>
+          </div>
+        </section>
+
+        <section class="paste-panel" aria-label="Paste remaining stock">
+          <div class="paste-input">
+            <p class="eyebrow">Quick fill</p>
+            <h2>Paste remaining stock</h2>
+            <p class="panel-note">Paste your “Remain” list. Sales are worked out from each item’s max stock, and the next-day order is built for the selected group.</p>
+            <textarea id="remainInput" rows="9" spellcheck="false" placeholder="Remain&#10;Brownies 6&#10;Chocolate muffin 3&#10;Vannila Muffin 6&#10;Passion Juice 2&#10;Strawberry perfait 1"></textarea>
+            <label class="check-row"><input type="checkbox" id="assumeZero" checked /> Items not in the list are sold out (0 left)</label>
+            <p id="remainWarn" class="remain-warn hidden"></p>
+            <div class="panel-actions">
+              <button class="primary-btn" id="generateButton">Fill sales &amp; build order</button>
+              <button class="secondary-btn" id="clearRemain">Clear</button>
+            </div>
+          </div>
+          <div class="paste-output">
+            <div class="paste-output-head">
+              <div><p class="eyebrow">Next-day order</p><h2 id="orderPreviewTitle">G1 order</h2></div>
+              <div class="actions">
+                <button class="secondary-btn" id="copyButton">Copy order text</button>
+                <button class="whatsapp-btn" id="whatsappButton"><span>◔</span> Send to WhatsApp</button>
+              </div>
+            </div>
+            <pre id="orderPreview"></pre>
           </div>
         </section>
 
         <section id="inventoryView" class="content-view">
           <div class="table-intro">
-            <div><h2>Daily stock count</h2><p>Enter opening stock, sales, received items, and wastage. Closing stock is calculated automatically and included in the report PDF.</p></div>
-            <div class="legend"><span><i class="green-dot"></i> Calculated closing stock</span><span><i class="orange-dot"></i> Required report fields</span></div>
+            <div><h2>Daily stock count</h2><p>Enter opening stock, sales, received items, and wastage. Closing stock is calculated automatically. Max stock is the level you top up to — the order is max minus closing stock.</p></div>
+            <div class="legend"><span><i class="green-dot"></i> Calculated closing stock</span><span><i class="orange-dot"></i> Report fields &amp; max stock</span></div>
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Item</th><th>Opening stock</th><th>Sales</th><th>Received</th><th>Wastage</th><th>Closing stock</th></tr></thead>
+              <thead><tr><th>Item</th><th>Opening stock</th><th>Sales</th><th>Received</th><th>Wastage</th><th>Closing stock</th><th>Max stock</th></tr></thead>
               <tbody id="inventoryBody"></tbody>
             </table>
           </div>
@@ -80,7 +103,7 @@
             <div class="order-sheet">
               <div class="order-sheet-header"><div><p class="eyebrow">Recorded stock</p><h2 id="orderHeading">G1 Daily Report</h2></div><span id="orderDate"></span></div>
               <div id="orderList"></div>
-              <p class="order-empty hidden" id="orderEmpty">All stock is at its target level. There is nothing to order.</p>
+              <p class="order-empty hidden" id="orderEmpty">No quantities recorded yet.</p>
             </div>
             <aside class="how-it-works">
               <p class="eyebrow">How it works</p>

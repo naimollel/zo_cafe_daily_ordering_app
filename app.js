@@ -10,10 +10,29 @@ const menu = {
     ['Pastries', 'Brownies'], ['Pastries', 'Chocolate Croissants'], ['Pastries', 'Chocolate Muffins'], ['Pastries', 'Plain Croissants'], ['Pastries', 'Vanilla Muffins'],
     ['Juice', 'Mango Passion'], ['Juice', 'Passion'], ['Juice', 'Immunity Shot'], ['Juice', 'Green Detox'], ['Burger', 'Burger'],
     ['Hot Bowls', 'Butter Chicken'], ['Hot Bowls', 'Chicken Biryani'], ['Hot Bowls', 'Chicken Fried Rice'], ['Hot Bowls', 'Chicken Noodles'], ['Hot Bowls', 'Swahili Bowl'], ['Hot Bowls', 'Fried Chicken 1/4 (Chicken)'], ['Hot Bowls', 'Fried Chicken 1/2 (Chicken)'], ['Hot Bowls', 'Beef Stir Fry Rice'], ['Hot Bowls', 'Roasted Chicken Wings & Mashed Potatoes'],
-    ['Salads', 'Crispy Chicken Avocado Salad'], ['Salads', 'Citrus Pasta Salad'], ['Sandwich', 'Cheese & Tomato'], ['Sandwich', 'Chicken Tikka'], ['Sandwich', 'Sandwiches & Fries'], ['Hot Snacks', 'Plate: 3 Samosas'], ['Hot Snacks', 'Samosa Plate With Fries'],
+    ['Salads', 'Crispy Chicken Avocado Salad'], ['Salads', 'Chicken Caesar Salad'], ['Sandwich', 'Cheese & Tomato'], ['Sandwich', 'Chicken Tikka'], ['Sandwich', 'Sandwiches & Fries'], ['Hot Snacks', 'Plate: 3 Samosas'], ['Hot Snacks', 'Samosa Plate With Fries'],
     ['Breakfast', 'Toast, Baked Beans, Grilled Tomato'], ['Breakfast', 'Add ons:'], ['Breakfast', 'Beef/ Chicken Sausage'], ['Breakfast', 'Mushrooms'], ['Breakfast', 'Avacado Slices'], ['Breakfast', 'Granola Bowl'], ['Parfaits', 'Strawberry Parfaits'], ['Parfaits', 'Mango Parfaits']
   ]
 };
+
+// Maximum stock per day (what you top up to). Closing stock is subtracted from this to get the order.
+// The order of this list is the order used in the order message. Max values can also be edited in the table.
+const DEFAULT_MAX = {
+  G2: [
+    ['Brownies', 6], ['Chocolate Croissants', 3], ['Plain Croissants', 3], ['Vanilla Muffins', 6], ['Chocolate Muffins', 6],
+    ['Mango Passion', 4], ['Passion', 4], ['Immunity Shot', 4],
+    ['Butter Chicken', 4], ['Chicken Fried Rice', 3], ['Chicken Noodles', 3], ['Swahili Bowl', 4], ['Roasted Chicken Wings & Mashed Potatoes', 4], ['Beef Stir Fry Rice', 3],
+    ['Crispy Chicken Avocado Salad', 2], ['Chicken Caesar Salad', 1],
+    ['Chicken Tikka', 4], ['Cheese & Tomato', 1],
+    ['Strawberry Parfaits', 2], ['Mango Parfaits', 2]
+  ]
+};
+// G1 starts with the same numbers for the items it shares with G2 (edit them in the Max stock column).
+DEFAULT_MAX.G1 = DEFAULT_MAX.G2.filter(([name]) => menu.G1.some(([, menuName]) => menuName === name));
+// Name shown in the order message when it differs from the menu name.
+const ORDER_LABELS = { 'Beef Stir Fry Rice': 'Beef pepper & rice' };
+const defaultMax = (group, name) => (DEFAULT_MAX[group].find(([n]) => n === name) || [name, 0])[1];
+const maxRank = (group, name) => { const i = DEFAULT_MAX[group].findIndex(([n]) => n === name); return i < 0 ? 1000 : i; };
 
 let selectedGroup = 'G1';
 let view = 'inventory';
@@ -21,42 +40,40 @@ let reportDate = new Date().toISOString().slice(0, 10);
 let state = JSON.parse(localStorage.getItem('zo-cafe-daily-report-v1') || '{}');
 const normalise = value => String(value).toLowerCase().replace(/[^a-z0-9]/g, '');
 const nonNegative = value => Math.max(0, Number.isFinite(Number(value)) ? Number(value) : 0);
-function makeInitial(group) { return menu[group].map(([category, name]) => ({ category, name, opening: 0, sales: 0, received: 0, wastage: 0 })); }
+function makeInitial(group) { return menu[group].map(([category, name]) => ({ category, name, opening: 0, sales: 0, received: 0, wastage: 0, max: defaultMax(group, name) })); }
 function ensureGroup(group) {
   const saved = Array.isArray(state[group]) ? state[group] : [];
   const savedByName = new Map(saved.map(item => [normalise(item.name), item]));
   state[group] = menu[group].map(([category, name]) => {
     const old = savedByName.get(normalise(name)) || {};
-    return { category, name, opening: nonNegative(old.opening ?? old.current), sales: nonNegative(old.sales ?? old.sold), received: nonNegative(old.received), wastage: nonNegative(old.wastage ?? old.waste) };
+    return { category, name, opening: nonNegative(old.opening ?? old.current), sales: nonNegative(old.sales ?? old.sold), received: nonNegative(old.received), wastage: nonNegative(old.wastage ?? old.waste), max: nonNegative(old.max ?? defaultMax(group, name)) };
   });
   return state[group];
 }
 function save() { localStorage.setItem('zo-cafe-daily-report-v1', JSON.stringify(state)); }
 function currentItems() { return ensureGroup(selectedGroup); }
 function closingStock(item) { return Math.max(0, item.opening + item.received - item.sales - item.wastage); }
+function orderQty(item) { return Math.max(0, item.max - closingStock(item)); }
 function changedItems() { return currentItems().filter(item => item.sales || item.received || item.wastage || item.opening); }
 function formatDate(value) { return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${value}T12:00:00`)); }
 
-function numberInput(index, field) {
+function numberInput(index, field, extra = '') {
   const item = currentItems()[index];
-  return `<input class="stock-input" data-index="${index}" data-field="${field}" type="number" min="0" inputmode="numeric" value="${item[field]}" aria-label="${field} for ${item.name}" />`;
+  return `<input class="stock-input ${extra}" data-index="${index}" data-field="${field}" type="number" min="0" inputmode="numeric" value="${item[field]}" aria-label="${field} for ${item.name}" />`;
 }
 function renderInventory() {
   let previousCategory = '';
   const body = document.getElementById('inventoryBody');
   body.innerHTML = currentItems().map((item, index) => {
-    const category = item.category !== previousCategory ? (previousCategory = item.category, `<tr class="category-row"><td colspan="6">${item.category}</td></tr>`) : '';
-    return `${category}<tr><td>${item.name}</td><td>${numberInput(index, 'opening')}</td><td>${numberInput(index, 'sales')}</td><td>${numberInput(index, 'received')}</td><td>${numberInput(index, 'wastage')}</td><td><span class="closing-stock">${closingStock(item)}</span></td></tr>`;
+    const category = item.category !== previousCategory ? (previousCategory = item.category, `<tr class="category-row"><td colspan="7">${item.category}</td></tr>`) : '';
+    return `${category}<tr><td>${item.name}</td><td>${numberInput(index, 'opening')}</td><td>${numberInput(index, 'sales')}</td><td>${numberInput(index, 'received')}</td><td>${numberInput(index, 'wastage')}</td><td><span class="closing-stock">${closingStock(item)}</span></td><td>${numberInput(index, 'max', 'max-input')}</td></tr>`;
   }).join('');
-  body.querySelectorAll('.stock-input').forEach(input => {
-    input.addEventListener('input', event => { const field = event.currentTarget; currentItems()[Number(field.dataset.index)][field.dataset.field] = nonNegative(field.value); save(); });
-    input.addEventListener('change', updateItem);
-  });
-}
-function updateItem(event) {
-  const input = event.currentTarget;
-  currentItems()[Number(input.dataset.index)][input.dataset.field] = nonNegative(input.value);
-  save(); render();
+  body.querySelectorAll('.stock-input').forEach(input => input.addEventListener('input', event => {
+    const field = event.currentTarget, item = currentItems()[Number(field.dataset.index)];
+    item[field.dataset.field] = nonNegative(field.value); save();
+    field.closest('tr').querySelector('.closing-stock').textContent = closingStock(item);
+    renderSummary(); renderOrder(); renderOrderPreview();
+  }));
 }
 function renderOrder() {
   let previousCategory = '';
@@ -77,10 +94,72 @@ function renderSummary() {
   document.getElementById('orderBadge').textContent = changedItems().length;
 }
 function orderMessage() {
-  const lines = [`*ZO CAFÉ — ${selectedGroup} DAILY REPORT*`, `*Date:* ${formatDate(reportDate)}`, '']; let previousCategory = '';
-  changedItems().forEach(item => { if (item.category !== previousCategory) { previousCategory = item.category; lines.push(`*${item.category}*`); } lines.push(`• ${item.name}: opening ${item.opening}, sales ${item.sales}, received ${item.received}, wastage ${item.wastage}, closing ${closingStock(item)}`); });
-  if (lines.length === 3) lines.push('No quantities recorded yet.');
-  return lines.join('\n');
+  const needed = currentItems().map((item, index) => ({ item, index })).filter(({ item }) => orderQty(item) > 0)
+    .sort((a, b) => maxRank(selectedGroup, a.item.name) - maxRank(selectedGroup, b.item.name) || a.index - b.index);
+  const categories = new Map();
+  needed.forEach(({ item }) => { if (!categories.has(item.category)) categories.set(item.category, []); categories.get(item.category).push(item); });
+  const lines = [`ZO CAFÉ — ${selectedGroup} ORDER`];
+  categories.forEach((items, category) => {
+    lines.push(category, '');
+    items.forEach(item => lines.push(`* ${ORDER_LABELS[item.name] || item.name}: ${orderQty(item)}`));
+    lines.push('');
+  });
+  if (!categories.size) lines.push('', 'Nothing to order — everything is at max stock.');
+  return lines.join('\n').trim();
+}
+function renderOrderPreview() {
+  document.getElementById('orderPreview').textContent = orderMessage();
+  document.getElementById('orderPreviewTitle').textContent = `${selectedGroup} order`;
+}
+
+// ---- Paste "Remain" list -> fill sales + build order ----
+const cleanText = value => String(value).replace(/[\u200b-\u200d\u2060\ufeff]/g, '');
+const canon = value => cleanText(value).toLowerCase()
+  .replace(/vannila|vanila/g, 'vanilla').replace(/chopcolate|choclate|chocolete/g, 'chocolate')
+  .replace(/croi?s{1,2}ant/g, 'croissant').replace(/perfait|parfeit/g, 'parfait')
+  .replace(/[^a-z0-9]/g, '').replace(/juice/g, '').replace(/s$/, '');
+const ITEM_ALIASES = { [canon('Beef pepper & rice')]: 'Beef Stir Fry Rice', [canon('Beef pepper rice')]: 'Beef Stir Fry Rice', [canon('Immunity')]: 'Immunity Shot', [canon('Swahili')]: 'Swahili Bowl' };
+function editDistance(a, b) {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) { let prev = row[0]; row[0] = i; for (let j = 1; j <= b.length; j++) { const temp = row[j]; row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = temp; } }
+  return row[b.length];
+}
+function findItemIndex(items, text) {
+  const key = canon(text); if (!key) return -1;
+  const aliasName = ITEM_ALIASES[key], keys = items.map(item => canon(item.name));
+  const exact = keys.findIndex((value, index) => value === key || (aliasName && items[index].name === aliasName));
+  if (exact >= 0) return exact;
+  if (key.length < 6) return -1;
+  const scored = keys.map((value, index) => ({ index, distance: editDistance(key, value) })).filter(entry => entry.distance <= 2).sort((a, b) => a.distance - b.distance);
+  return scored.length && (scored.length === 1 || scored[0].distance < scored[1].distance) ? scored[0].index : -1;
+}
+function parseRemaining(text, items) {
+  const found = new Map(), unmatched = [], categoryKeys = new Set(items.map(item => canon(item.category)));
+  cleanText(text).split(/\r?\n/).forEach(raw => {
+    const line = raw.replace(/^[\s*•·>\-–—]+/, '').trim();
+    if (!line || /^remain(ing|s)?\s*:?$/i.test(line) || categoryKeys.has(canon(line))) return;
+    const match = line.match(/^(.*?)\s*[:=\-–—]?\s*[x×]?\s*(\d+)\s*$/i), index = match ? findItemIndex(items, match[1]) : -1;
+    if (index < 0) unmatched.push(line); else found.set(index, Number(match[2]));
+  });
+  return { found, unmatched };
+}
+function generateFromRemaining() {
+  const text = document.getElementById('remainInput').value, warn = document.getElementById('remainWarn');
+  if (!text.trim()) { showToast('Paste your remaining-stock list first.'); return; }
+  const items = currentItems(), { found, unmatched } = parseRemaining(text, items), soldOutRest = document.getElementById('assumeZero').checked;
+  let filled = 0;
+  items.forEach((item, index) => {
+    const listed = found.has(index);
+    if (!listed && !(soldOutRest && item.max > 0)) return;
+    const remaining = listed ? found.get(index) : 0;
+    let opening = item.max, sales = opening + item.received - item.wastage - remaining;
+    if (sales < 0) { opening -= sales; sales = 0; }
+    item.opening = opening; item.sales = sales; filled++;
+  });
+  save(); render();
+  warn.textContent = unmatched.length ? `Couldn't match: ${unmatched.join(' · ')}` : '';
+  warn.classList.toggle('hidden', !unmatched.length);
+  showToast(`${selectedGroup}: sales filled for ${filled} items, order ready`);
 }
 function encodeReportData(data) { return btoa(unescape(encodeURIComponent(JSON.stringify(data)))); }
 function decodeReportData(value) { return JSON.parse(decodeURIComponent(escape(atob(value)))); }
@@ -131,12 +210,14 @@ function render() {
   document.querySelectorAll('.group-card').forEach(button => button.classList.toggle('active', button.dataset.group === selectedGroup)); document.querySelectorAll('.view-tab').forEach(button => button.classList.toggle('active', button.dataset.view === view));
   document.getElementById('groupTitle').textContent = `${selectedGroup} Daily Report`; document.getElementById('orderHeading').textContent = `${selectedGroup} Daily Report`; document.getElementById('orderDate').textContent = formatDate(reportDate);
   document.getElementById('reportDate').value = reportDate;
-  document.getElementById('inventoryView').classList.toggle('hidden', view !== 'inventory'); document.getElementById('orderView').classList.toggle('hidden', view !== 'order'); renderSummary(); renderInventory(); renderOrder();
+  document.getElementById('inventoryView').classList.toggle('hidden', view !== 'inventory'); document.getElementById('orderView').classList.toggle('hidden', view !== 'order'); renderSummary(); renderInventory(); renderOrder(); renderOrderPreview();
 }
 document.querySelectorAll('.group-card').forEach(button => button.addEventListener('click', () => { selectedGroup = button.dataset.group; render(); })); document.querySelectorAll('.view-tab').forEach(button => button.addEventListener('click', () => { view = button.dataset.view; render(); }));
 document.getElementById('exportPdf').addEventListener('click', downloadPdf); document.getElementById('importPdf').addEventListener('change', event => { uploadPdf(event.target.files[0]); event.target.value = ''; });
 document.getElementById('reportDate').addEventListener('change', event => { if (event.target.value) { reportDate = event.target.value; render(); } });
-document.getElementById('copyButton').addEventListener('click', async () => { try { await navigator.clipboard.writeText(orderMessage()); showToast('Daily report copied to clipboard'); } catch { showToast('Unable to copy — select from Daily report instead'); } });
+document.getElementById('copyButton').addEventListener('click', async () => { try { await navigator.clipboard.writeText(orderMessage()); showToast('Order copied to clipboard'); } catch { showToast('Unable to copy — select the order text and copy it manually'); } });
 document.getElementById('whatsappButton').addEventListener('click', () => { window.open(`https://wa.me/255719387276?text=${encodeURIComponent(orderMessage())}`, '_blank', 'noopener'); });
-document.getElementById('resetButton').addEventListener('click', () => { if (confirm('Start a new day? This sets both daily reports to zero.')) { state.G1 = makeInitial('G1'); state.G2 = makeInitial('G2'); reportDate = new Date().toISOString().slice(0, 10); save(); render(); showToast('New daily reports started at zero'); } });
+document.getElementById('generateButton').addEventListener('click', generateFromRemaining);
+document.getElementById('clearRemain').addEventListener('click', () => { document.getElementById('remainInput').value = ''; document.getElementById('remainWarn').classList.add('hidden'); });
+document.getElementById('resetButton').addEventListener('click', () => { if (confirm('Start a new day? This sets both daily reports to zero.')) { ['G1', 'G2'].forEach(group => { const old = ensureGroup(group); state[group] = makeInitial(group).map((item, i) => ({ ...item, max: old[i].max })); }); reportDate = new Date().toISOString().slice(0, 10); save(); render(); showToast('New daily reports started at zero'); } });
 ensureGroup('G1'); ensureGroup('G2'); save(); render();
